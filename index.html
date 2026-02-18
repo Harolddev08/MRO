@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SisteGestionMRO</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://unpkg.com">
+<style>
+*,
+*::before,
+*::after{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;background:#020617;color:#e2e8f0}
+header{padding:14px 18px;background:#020617;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937}
+main{padding:18px;display:grid;gap:16px;max-width:960px;margin:0 auto}
+.row{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{background:#020617;border:1px solid #1f2937;border-radius:16px;padding:16px;box-shadow:0 14px 32px rgba(15,23,42,.9);overflow:hidden}
+.card h2{margin:0 0 12px 0;font-size:18px;color:#93c5fd}
+.btn{appearance:none;background:#2563eb;color:#fff;border:none;border-radius:999px;padding:12px 16px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.secondary{background:#374151}
+.btn-qr{background:#16a34a;font-size:15px;padding:14px 18px}
+.input{background:#020617;border:1px solid #1f2937;color:#e2e8f0;border-radius:999px;padding:12px 14px;width:100%}
+.grid{border:1px solid #1f2937;border-radius:16px;overflow:auto;max-height:60vh}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid #1f2937;padding:8px 10px;text-align:left;font-size:13px}
+th{background:#020617;color:#60a5fa;position:sticky;top:0}
+.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.qr-container{display:grid;grid-template-columns:1fr;gap:10px}
+.pill{font-size:12px;background:#020617;border:1px solid #1f2937;color:#93c5fd;border-radius:999px;padding:6px 10px}
+.danger{background:#ef4444}
+.success{background:#22c55e}
+.hidden{display:none!important}
+.accordion-header{width:100%;display:flex;justify-content:space-between;align-items:center;border-radius:999px;border:1px solid #1f2937;background:#020617;color:#e5e7eb;font-weight:600;padding:10px 14px;font-size:14px}
+.accordion-body{margin-top:10px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.9);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:#020617;border-radius:16px;border:1px solid #1f2937;max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;gap:14px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,1)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(8px);padding:10px 18px;border-radius:999px;background:rgba(22,163,74,.96);color:#ecfdf5;font-size:14px;font-weight:600;box-shadow:0 18px 45px rgba(15,23,42,.9);opacity:0;transition:opacity .18s ease-out,transform .18s ease-out;z-index:60;pointer-events:none;max-width:92%;text-align:center;white-space:normal;line-height:1.35}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:900px){
+main{padding:12px 10px;gap:14px}
+.row{grid-template-columns:1fr}
+.card{padding:14px;border-radius:14px;box-shadow:0 14px 30px rgba(15,23,42,.9)}
+header{padding:10px 12px;flex-direction:column;align-items:flex-start;gap:8px}
+header .pill{font-size:11px;width:100%;text-align:left}
+.flex{flex-direction:column;align-items:stretch}
+.btn{width:100%}
+.input{width:100%}
+.grid{max-height:50vh}
+ .modal{max-width:none;width:100%;height:100%;max-height:none;border-radius:0}
+table{font-size:12px}
+th,td{padding:6px 8px}
+}
+</style>
+</head>
+<body>
+<header class="flex">
+  <div style="font-weight:700;color:#93c5fd">SisteGestionMRO</div>
+  <div class="pill">Flujo: Excel → LocalStorage → QR/Actualizar → Exportar</div>
+  <button id="exportBtn" class="btn secondary">Exportar Excel</button>
+</header>
+<main>
+  <section class="card">
+    <h2>Cargar Excel</h2>
+    <div class="flex">
+      <input id="fileInput" class="input" type="file" accept=".xlsx,.xls,.csv">
+      <button id="loadBtn" class="btn">Cargar</button>
+      <button id="clearBtn" class="btn danger">Vaciar LocalStorage</button>
+      <span id="loadInfo" class="pill">0 registros</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Día a día</h2>
+    <div class="row">
+      <div class="card" style="grid-column:span 6">
+        <div id="qrRegion" class="qr-container">
+          <div id="qrStatus" class="pill">QR inactivo</div>
+          <div id="qrReader" style="width:100%;max-width:420px"></div>
+          <div class="flex">
+            <button id="startQrBtn" class="btn btn-qr">Iniciar QR</button>
+            <button id="stopQrBtn" class="btn secondary">Detener QR</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column:span 6">
+        <div class="flex">
+          <label for="editIdValue">Identificador</label>
+          <input id="editIdValue" class="input" placeholder="Valor del identificador">
+          <button id="loadRecordBtn" class="btn secondary">Cargar registro</button>
+        </div>
+        <div id="editForm" style="margin-top:10px"></div>
+        <div class="flex" style="margin-top:10px">
+          <button id="saveRecordBtn" class="btn">Guardar cambios</button>
+        </div>
+        <div id="editInfo" class="pill" style="margin-top:10px">Sin registro</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Lista</h2>
+    <div class="flex">
+      <button id="toggleListBtn" class="btn secondary">Abrir lista</button>
+    </div>
+    <div class="grid hidden" id="listContainer">
+      <table id="dataTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <button id="configToggle" class="accordion-header">
+      <span>Configuración avanzada</span>
+      <span id="configToggleIcon">+</span>
+    </button>
+    <div id="configBody" class="accordion-body hidden">
+      <div class="flex">
+        <label for="idField">Campo identificador</label>
+        <select id="idField" class="input" style="max-width:260px"></select>
+        <button id="refreshKeysBtn" class="btn secondary">Actualizar campos</button>
+      </div>
+      <div style="margin-top:10px" class="pill">Usado para buscar y QR</div>
+    </div>
+  </section>
+</main>
+
+<div id="listModalBackdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Lista de equipos</h2>
+      <button id="closeListModalBtn" class="btn secondary">Cerrar</button>
+    </div>
+    <div class="flex">
+      <label for="modalSearchInput">Buscar por responsable</label>
+      <input id="modalSearchInput" class="input" placeholder="Nombre del responsable">
+      <button id="modalSearchBtn" class="btn secondary">Buscar</button>
+      <button id="modalResetBtn" class="btn secondary">Ver todos</button>
+    </div>
+    <div class="grid" id="modalListContainer">
+      <table id="modalTable">
+        <thead>
+          <tr><th>Responsable</th><th>Estado</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+const LS_KEY="equiposData"
+const ESTADO_FIELD="Estado"
+let data=[]
+let filtered=[]
+let keys=[]
+let idFieldEl=document.getElementById("idField")
+let fileInput=document.getElementById("fileInput")
+let loadBtn=document.getElementById("loadBtn")
+let clearBtn=document.getElementById("clearBtn")
+let exportBtn=document.getElementById("exportBtn")
+let loadInfo=document.getElementById("loadInfo")
+let searchInput=document.getElementById("modalSearchInput")
+let searchBtn=document.getElementById("modalSearchBtn")
+let resetBtn=document.getElementById("modalResetBtn")
+let dataTable=document.getElementById("dataTable")
+let toggleListBtn=document.getElementById("toggleListBtn")
+let listContainer=document.getElementById("listContainer")
+let refreshKeysBtn=document.getElementById("refreshKeysBtn")
+let startQrBtn=document.getElementById("startQrBtn")
+let stopQrBtn=document.getElementById("stopQrBtn")
+let qrStatus=document.getElementById("qrStatus")
+let editIdValue=document.getElementById("editIdValue")
+let loadRecordBtn=document.getElementById("loadRecordBtn")
+let editForm=document.getElementById("editForm")
+let saveRecordBtn=document.getElementById("saveRecordBtn")
+let editInfo=document.getElementById("editInfo")
+let qrReader=null
+let lastScanText=null
+let lastScanTime=0
+let configToggle=document.getElementById("configToggle")
+let configBody=document.getElementById("configBody")
+let configToggleIcon=document.getElementById("configToggleIcon")
+let listModalBackdrop=document.getElementById("listModalBackdrop")
+let closeListModalBtn=document.getElementById("closeListModalBtn")
+let modalTable=document.getElementById("modalTable")
+let toast=document.getElementById("toast")
+let toastTimeout=null
+function setLoadInfo(text,kind){loadInfo.textContent=text;loadInfo.className="pill"+(kind==="error"?" danger":kind==="ok"?" success":"")}
+function stripDiacritics(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function normText(v){return stripDiacritics(v).replace(/\s+/g,"").toLowerCase()}
+function ensureEstadoField(){if(!keys.includes(ESTADO_FIELD)){keys.push(ESTADO_FIELD)}data.forEach(r=>{if(r[ESTADO_FIELD]===undefined)r[ESTADO_FIELD]=""})}
+function showToast(message){if(!toast)return;if(toastTimeout)clearTimeout(toastTimeout);toast.textContent=message;toast.classList.remove("hidden");toast.classList.add("show");toastTimeout=setTimeout(()=>{toast.classList.remove("show");toast.classList.add("hidden")},5000)}
+function readLS(){try{const s=localStorage.getItem(LS_KEY);if(!s)return[];const arr=JSON.parse(s);if(!Array.isArray(arr))return[];return arr}catch(e){return[]}}
+function writeLS(arr){localStorage.setItem(LS_KEY,JSON.stringify(arr))}
+function setData(arr){data=arr||[];filtered=[...data];keys=deriveKeys(data);updateKeysUI();renderTable(filtered);renderModalList(filtered);loadInfo.textContent=`${data.length} registros`}
+function deriveKeys(arr){if(!arr||arr.length===0)return[];const o=arr[0];return Object.keys(o)}
+function updateKeysUI(){idFieldEl.innerHTML="";keys.forEach(k=>{const opt=document.createElement("option");opt.value=k;opt.textContent=k;idFieldEl.appendChild(opt)});const prev=localStorage.getItem("idField");if(prev&&keys.includes(prev))idFieldEl.value=prev;else if(keys.length)idFieldEl.value=keys[0]}
+function renderTable(arr){const thead=dataTable.querySelector("thead");const tbody=dataTable.querySelector("tbody");thead.innerHTML="";tbody.innerHTML="";if(keys.length){const tr=document.createElement("tr");keys.forEach(k=>{const th=document.createElement("th");th.textContent=k;tr.appendChild(th)});thead.appendChild(tr)}arr.forEach(row=>{const tr=document.createElement("tr");keys.forEach(k=>{const td=document.createElement("td");td.textContent=row[k]!==undefined?row[k]:"";tr.appendChild(td)});tbody.appendChild(tr)})}
+function renderModalList(arr){const tbody=modalTable.querySelector("tbody");tbody.innerHTML="";if(!arr||!arr.length)return;const respKey=keys.includes("Responsable")?"Responsable":keys[0];ensureEstadoField();arr.forEach(row=>{const tr=document.createElement("tr");const tdResp=document.createElement("td");tdResp.textContent=row[respKey]!==undefined?row[respKey]:"";const tdEstado=document.createElement("td");tdEstado.textContent=row[ESTADO_FIELD]!==undefined?row[ESTADO_FIELD]:"";tr.appendChild(tdResp);tr.appendChild(tdEstado);tbody.appendChild(tr)})}
+function parseFile(f){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{try{const data=new Uint8Array(e.target.result);const wb=XLSX.read(data,{type:"array"});const first=wb.Sheets[wb.SheetNames[0]];const json=XLSX.utils.sheet_to_json(first,{defval:""});resolve(json)}catch(err){reject(err)}};reader.onerror=reject;reader.readAsArrayBuffer(f)})}
+function search(){const q=normText(searchInput.value||"");if(!q){filtered=[...data];renderModalList(filtered);return}const respKey=keys.includes("Responsable")?"Responsable":keys[0];filtered=data.filter(row=>normText(row[respKey]).includes(q));renderModalList(filtered)}
+function findByIdVal(val){const key=idFieldEl.value;const raw=String(val||"");if(!raw)return null;const exact=data.find(r=>String(r[key])===raw);if(exact)return exact;const targetNorm=normText(raw);for(const r of data){for(const k of keys){const fieldNorm=normText(r[k]);if(!fieldNorm)continue;if(fieldNorm===targetNorm||targetNorm.includes(fieldNorm)||fieldNorm.includes(targetNorm))return r}}for(const r of data){const joined=keys.map(k=>r[k]).join(" ");const joinedNorm=normText(joined);if(joinedNorm===targetNorm||joinedNorm.includes(targetNorm)||targetNorm.includes(joinedNorm))return r}return null}
+function buildEditForm(rec){editForm.innerHTML="";if(!rec)return;keys.forEach(k=>{const wrap=document.createElement("div");wrap.className="flex";const label=document.createElement("label");label.textContent=k;label.style.minWidth="120px";const inp=document.createElement("input");inp.className="input";inp.value=rec[k]!==undefined?rec[k]:"";inp.dataset.key=k;wrap.appendChild(label);wrap.appendChild(inp);editForm.appendChild(wrap)})}
+function collectForm(rec){const inputs=editForm.querySelectorAll("input");inputs.forEach(inp=>{rec[inp.dataset.key]=inp.value})}
+function saveRecord(){const key=idFieldEl.value;const val=editIdValue.value;if(!val)return;const idx=data.findIndex(r=>String(r[key])===String(val));if(idx===-1)return;const rec=data[idx];collectForm(rec);writeLS(data);filtered=[...data];renderTable(filtered);renderModalList(filtered);editInfo.textContent="Guardado";editInfo.className="pill success";setTimeout(()=>{editInfo.className="pill";editInfo.textContent=`${data.length} registros`},2000)}
+function handleScan(text){const now=Date.now();if(text===lastScanText&&now-lastScanTime<2000)return;lastScanText=text;lastScanTime=now;qrStatus.textContent=`QR: ${text}`;editIdValue.value=text;const rec=findByIdVal(text);if(!rec){editForm.innerHTML="";editInfo.textContent="No encontrado";editInfo.className="pill danger";showToast("Acceso bloqueado.");stopQr();return}ensureEstadoField();const prev=rec[ESTADO_FIELD]||"";const next=prev==="Adentro"?"Afuera":"Adentro";rec[ESTADO_FIELD]=next;writeLS(data);filtered=[...data];renderTable(filtered);renderModalList(filtered);buildEditForm(rec);const idKey=idFieldEl.value;const label=rec[idKey]!==undefined?rec[idKey]:"";editInfo.textContent=`${label} → ${next}`;editInfo.className="pill success";const toastMsg=next==="Adentro"?"Ingreso validado.":"Salida validada.";showToast(toastMsg);stopQr()}
+function startQr(){if(qrReader)return;qrReader=new Html5Qrcode("qrReader");Html5Qrcode.getCameras().then(cams=>{if(!cams||cams.length===0){qrStatus.textContent="Sin cámaras";return}qrReader.start(cams[0].id,{fps:10,qrbox:250},text=>{handleScan(text);},{})}).catch(()=>{qrStatus.textContent="Error QR"})}
+function stopQr(){if(!qrReader)return;qrReader.stop().then(()=>{qrReader.clear();qrReader=null;qrStatus.textContent="QR inactivo"}).catch(()=>{})}
+function loadRecord(){const rec=findByIdVal(editIdValue.value);if(!rec){editForm.innerHTML="";editInfo.textContent="No encontrado";editInfo.className="pill danger";return}buildEditForm(rec);editInfo.textContent="Registro cargado";editInfo.className="pill success"}
+function exportExcel(){if(!data||data.length===0)return;const sheet=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet,"Equipos");XLSX.writeFile(wb,"equipos_actualizado.xlsx")}
+loadBtn.onclick=async()=>{const f=fileInput.files&&fileInput.files[0];if(!f){setLoadInfo("Primero elige un archivo","error");return}try{if(typeof XLSX==="undefined"){setLoadInfo("No se pudo cargar librería Excel","error");return}setLoadInfo("Leyendo archivo...","");const json=await parseFile(f);if(!json||!json.length){setLoadInfo("Archivo vacío o sin filas","error");return}writeLS(json);setData(json);setLoadInfo(`${data.length} registros cargados`,"ok")}catch(e){setLoadInfo("Error al leer Excel","error")}}
+clearBtn.onclick=()=>{localStorage.removeItem(LS_KEY);setData([])}
+exportBtn.onclick=exportExcel
+refreshKeysBtn.onclick=()=>{keys=deriveKeys(data);updateKeysUI();renderTable(filtered);renderModalList(filtered)}
+searchBtn.onclick=search
+resetBtn.onclick=()=>{searchInput.value="";search()}
+startQrBtn.onclick=startQr
+stopQrBtn.onclick=stopQr
+loadRecordBtn.onclick=loadRecord
+saveRecordBtn.onclick=saveRecord
+idFieldEl.onchange=()=>{localStorage.setItem("idField",idFieldEl.value)}
+toggleListBtn.onclick=()=>{renderModalList(filtered);searchInput.value="";listModalBackdrop.classList.remove("hidden")}
+closeListModalBtn.onclick=()=>{listModalBackdrop.classList.add("hidden")}
+listModalBackdrop.onclick=e=>{if(e.target===listModalBackdrop)listModalBackdrop.classList.add("hidden")}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")listModalBackdrop.classList.add("hidden")})
+configToggle.onclick=()=>{const hide=configBody.classList.toggle("hidden");configToggleIcon.textContent=hide?"+":"−"}
+setData(readLS())
+</script>
+</body>
+</html>
