@@ -11,7 +11,7 @@
 *::before,
 *::after{box-sizing:border-box}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;background:#020617;color:#e2e8f0}
-header{padding:14px 18px;background:#020617;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937}
+header{padding:14px 18px;background:#020617;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937;display:flex;justify-content:center;align-items:center}
 main{padding:18px;display:grid;gap:16px;max-width:960px;margin:0 auto}
 .row{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
 .card{background:#020617;border:1px solid #1f2937;border-radius:16px;padding:16px;box-shadow:0 14px 32px rgba(15,23,42,.9);overflow:hidden}
@@ -36,14 +36,13 @@ th{background:#020617;color:#60a5fa;position:sticky;top:0}
 .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.9);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
 .modal{background:#020617;border-radius:16px;border:1px solid #1f2937;max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;gap:14px;padding:16px;box-shadow:0 24px 60px rgba(15,23,42,1)}
 .modal-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(8px);padding:10px 18px;border-radius:999px;background:rgba(22,163,74,.96);color:#ecfdf5;font-size:14px;font-weight:600;box-shadow:0 18px 45px rgba(15,23,42,.9);opacity:0;transition:opacity .18s ease-out,transform .18s ease-out;z-index:60;pointer-events:none;max-width:92%;text-align:center;white-space:normal;line-height:1.35}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(8px);padding:12px 24px;border-radius:999px;background:rgba(22,163,74,.96);color:#ecfdf5;font-size:16px;font-weight:700;box-shadow:0 18px 45px rgba(15,23,42,.9);opacity:0;transition:opacity .18s ease-out,transform .18s ease-out;z-index:60;pointer-events:none;max-width:96%;text-align:center;white-space:normal;line-height:1.4}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (max-width:900px){
 main{padding:12px 10px;gap:14px}
 .row{grid-template-columns:1fr}
 .card{padding:14px;border-radius:14px;box-shadow:0 14px 30px rgba(15,23,42,.9);width:100%}
-header{padding:10px 12px;flex-direction:column;align-items:flex-start;gap:8px}
-header .pill{font-size:11px;width:100%;text-align:left}
+header{padding:10px 12px}
 .flex{flex-direction:column;align-items:stretch;width:100%}
 .flex label{width:100%!important;min-width:0!important}
 .btn{width:100%}
@@ -61,10 +60,8 @@ th,td{padding:6px 8px}
 </style>
 </head>
 <body>
-<header class="flex">
-  <div style="font-weight:700;color:#93c5fd">SisteGestionMRO</div>
-  <div class="pill">Flujo: Excel → LocalStorage → QR/Actualizar → Exportar</div>
-  <button id="exportBtn" class="btn secondary">Exportar Excel</button>
+<header>
+  <div style="font-weight:800;color:#93c5fd;font-size:20px;text-align:center">GESTION EQUIPOS MRO</div>
 </header>
 <main>
   <section class="card hidden">
@@ -181,7 +178,6 @@ let idFieldEl=document.getElementById("idField")
 let fileInput=document.getElementById("fileInput")
 let loadBtn=document.getElementById("loadBtn")
 let clearBtn=document.getElementById("clearBtn")
-let exportBtn=document.getElementById("exportBtn")
 let loadInfo=document.getElementById("loadInfo")
 let searchInput=document.getElementById("modalSearchInput")
 let searchBtn=document.getElementById("modalSearchBtn")
@@ -217,7 +213,7 @@ function setLoadInfo(text,kind){loadInfo.textContent=text;loadInfo.className="pi
 function stripDiacritics(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function normText(v){return stripDiacritics(v).replace(/\s+/g,"").toLowerCase()}
 function ensureEstadoField(){if(!keys.includes(ESTADO_FIELD)){keys.push(ESTADO_FIELD)}data.forEach(r=>{if(r[ESTADO_FIELD]===undefined)r[ESTADO_FIELD]=""})}
-function showToast(message){if(!toast)return;if(toastTimeout)clearTimeout(toastTimeout);toast.textContent=message;toast.classList.remove("hidden");toast.classList.add("show");toastTimeout=setTimeout(()=>{toast.classList.remove("show");toast.classList.add("hidden")},5000)}
+function showToast(message){if(!toast)return;if(toastTimeout)clearTimeout(toastTimeout);toast.textContent=message;toast.classList.remove("hidden");toast.classList.add("show");toastTimeout=setTimeout(()=>{toast.classList.remove("show");toast.classList.add("hidden")},9000)}
 function readLS(){try{const s=localStorage.getItem(LS_KEY);if(!s)return[];const arr=JSON.parse(s);if(!Array.isArray(arr))return[];return arr}catch(e){return[]}}
 function writeLS(arr){localStorage.setItem(LS_KEY,JSON.stringify(arr))}
 function setData(arr){data=arr||[];filtered=[...data];keys=deriveKeys(data);updateKeysUI();renderTable(filtered);renderModalList(filtered);loadInfo.textContent=`${data.length} registros`}
@@ -240,10 +236,8 @@ function handleScan(text){const now=Date.now();if(text===lastScanText&&now-lastS
 function startQr(){if(qrReader)return;qrReader=new Html5Qrcode("qrReader");const startWithId=id=>qrReader.start(id,{fps:10,qrbox:250},t=>{handleScan(t)},{}) ;const startEnv=()=>qrReader.start({facingMode:"environment"},{fps:10,qrbox:250},t=>{handleScan(t)},{}) ;Html5Qrcode.getCameras().then(cams=>{if(!cams||cams.length===0){qrStatus.textContent="Sin cámaras";return}const back=cams.find(c=>/back|rear|environment/i.test(c.label));if(back){startWithId(back.id)}else if(cams.length>1){startWithId(cams[cams.length-1].id)}else{startEnv().catch(()=>startWithId(cams[0].id))}}).catch(()=>{qrStatus.textContent="Error QR"})}
 function stopQr(){if(!qrReader)return;qrReader.stop().then(()=>{qrReader.clear();qrReader=null;qrStatus.textContent="QR inactivo"}).catch(()=>{})}
 function loadRecord(){const rec=findByIdVal(editIdValue.value);if(!rec){editForm.innerHTML="";editInfo.textContent="No encontrado";editInfo.className="pill danger";return}buildEditForm(rec);editInfo.textContent="Registro cargado";editInfo.className="pill success"}
-function exportExcel(){if(!data||data.length===0)return;const sheet=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet,"Equipos");XLSX.writeFile(wb,"equipos_actualizado.xlsx")}
 loadBtn.onclick=async()=>{const f=fileInput.files&&fileInput.files[0];if(!f){setLoadInfo("Primero elige un archivo","error");return}try{if(typeof XLSX==="undefined"){setLoadInfo("No se pudo cargar librería Excel","error");return}setLoadInfo("Leyendo archivo...","");const json=await parseFile(f);if(!json||!json.length){setLoadInfo("Archivo vacío o sin filas","error");return}writeLS(json);setData(json);setLoadInfo(`${data.length} registros cargados`,"ok")}catch(e){setLoadInfo("Error al leer Excel","error")}}
 clearBtn.onclick=()=>{localStorage.removeItem(LS_KEY);setData([])}
-exportBtn.onclick=exportExcel
 refreshKeysBtn.onclick=()=>{keys=deriveKeys(data);updateKeysUI();renderTable(filtered);renderModalList(filtered)}
 searchBtn.onclick=search
 resetBtn.onclick=()=>{searchInput.value="";search()}
