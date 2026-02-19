@@ -41,16 +41,22 @@ th{background:#020617;color:#60a5fa;position:sticky;top:0}
 @media (max-width:900px){
 main{padding:12px 10px;gap:14px}
 .row{grid-template-columns:1fr}
-.card{padding:14px;border-radius:14px;box-shadow:0 14px 30px rgba(15,23,42,.9)}
+.card{padding:14px;border-radius:14px;box-shadow:0 14px 30px rgba(15,23,42,.9);width:100%}
 header{padding:10px 12px;flex-direction:column;align-items:flex-start;gap:8px}
 header .pill{font-size:11px;width:100%;text-align:left}
-.flex{flex-direction:column;align-items:stretch}
+.flex{flex-direction:column;align-items:stretch;width:100%}
+.flex label{width:100%!important;min-width:0!important}
 .btn{width:100%}
 .input{width:100%}
-.grid{max-height:50vh}
+.grid{max-height:50vh;-webkit-overflow-scrolling:touch}
  .modal{max-width:none;width:100%;height:100%;max-height:none;border-radius:0}
 table{font-size:12px}
 th,td{padding:6px 8px}
+}
+@media (max-width:520px){
+  body{font-size:15px}
+  .btn-qr{font-size:18px;padding:16px}
+  #qrReader{width:100%!important;max-width:none}
 }
 </style>
 </head>
@@ -61,7 +67,7 @@ th,td{padding:6px 8px}
   <button id="exportBtn" class="btn secondary">Exportar Excel</button>
 </header>
 <main>
-  <section class="card">
+  <section class="card hidden">
     <h2>Cargar Excel</h2>
     <div class="flex">
       <input id="fileInput" class="input" type="file" accept=".xlsx,.xls,.csv">
@@ -80,11 +86,11 @@ th,td{padding:6px 8px}
           <div id="qrReader" style="width:100%;max-width:420px"></div>
           <div class="flex">
             <button id="startQrBtn" class="btn btn-qr">Iniciar QR</button>
-            <button id="stopQrBtn" class="btn secondary">Detener QR</button>
+            <button id="stopQrBtn" class="btn secondary hidden">Detener QR</button>
           </div>
         </div>
       </div>
-      <div class="card" style="grid-column:span 6">
+      <div class="card hidden" style="grid-column:span 6">
         <div class="flex">
           <label for="editIdValue">Identificador</label>
           <input id="editIdValue" class="input" placeholder="Valor del identificador">
@@ -99,7 +105,7 @@ th,td{padding:6px 8px}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card hidden">
     <h2>Lista</h2>
     <div class="flex">
       <button id="toggleListBtn" class="btn secondary">Abrir lista</button>
@@ -109,7 +115,7 @@ th,td{padding:6px 8px}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card hidden">
     <button id="configToggle" class="accordion-header">
       <span>Configuración avanzada</span>
       <span id="configToggleIcon">+</span>
@@ -119,6 +125,18 @@ th,td{padding:6px 8px}
         <label for="idField">Campo identificador</label>
         <select id="idField" class="input" style="max-width:260px"></select>
         <button id="refreshKeysBtn" class="btn secondary">Actualizar campos</button>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <label for="paGetUrl">GET URL</label>
+        <input id="paGetUrl" class="input" placeholder="Pega la URL GET de Power Automate">
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <label for="paPostUrl">POST URL</label>
+        <input id="paPostUrl" class="input" placeholder="Pega la URL POST de Power Automate">
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button id="savePaUrlsBtn" class="btn">Guardar URLs</button>
+        <span id="paUrlsInfo" class="pill"></span>
       </div>
       <div style="margin-top:10px" class="pill">Usado para buscar y QR</div>
     </div>
@@ -154,6 +172,7 @@ th,td{padding:6px 8px}
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 const LS_KEY="equiposData"
+const CLOUD_XLSX_URL="https://uconet-my.sharepoint.com/:x:/g/personal/harold_pena0087_uco_net_co/IQBQgz-WgyjsSoMOAPaVKgMzAZ3Px3EiZJ3ISaKtnTLKw9Q?e=AR0kci"
 const ESTADO_FIELD="Estado"
 let data=[]
 let filtered=[]
@@ -190,6 +209,10 @@ let closeListModalBtn=document.getElementById("closeListModalBtn")
 let modalTable=document.getElementById("modalTable")
 let toast=document.getElementById("toast")
 let toastTimeout=null
+let paGetUrlInput=document.getElementById("paGetUrl")
+let paPostUrlInput=document.getElementById("paPostUrl")
+let savePaUrlsBtn=document.getElementById("savePaUrlsBtn")
+let paUrlsInfo=document.getElementById("paUrlsInfo")
 function setLoadInfo(text,kind){loadInfo.textContent=text;loadInfo.className="pill"+(kind==="error"?" danger":kind==="ok"?" success":"")}
 function stripDiacritics(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function normText(v){return stripDiacritics(v).replace(/\s+/g,"").toLowerCase()}
@@ -203,12 +226,17 @@ function updateKeysUI(){idFieldEl.innerHTML="";keys.forEach(k=>{const opt=docume
 function renderTable(arr){const thead=dataTable.querySelector("thead");const tbody=dataTable.querySelector("tbody");thead.innerHTML="";tbody.innerHTML="";if(keys.length){const tr=document.createElement("tr");keys.forEach(k=>{const th=document.createElement("th");th.textContent=k;tr.appendChild(th)});thead.appendChild(tr)}arr.forEach(row=>{const tr=document.createElement("tr");keys.forEach(k=>{const td=document.createElement("td");td.textContent=row[k]!==undefined?row[k]:"";tr.appendChild(td)});tbody.appendChild(tr)})}
 function renderModalList(arr){const tbody=modalTable.querySelector("tbody");tbody.innerHTML="";if(!arr||!arr.length)return;const respKey=keys.includes("Responsable")?"Responsable":keys[0];ensureEstadoField();arr.forEach(row=>{const tr=document.createElement("tr");const tdResp=document.createElement("td");tdResp.textContent=row[respKey]!==undefined?row[respKey]:"";const tdEstado=document.createElement("td");tdEstado.textContent=row[ESTADO_FIELD]!==undefined?row[ESTADO_FIELD]:"";tr.appendChild(tdResp);tr.appendChild(tdEstado);tbody.appendChild(tr)})}
 function parseFile(f){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{try{const data=new Uint8Array(e.target.result);const wb=XLSX.read(data,{type:"array"});const first=wb.Sheets[wb.SheetNames[0]];const json=XLSX.utils.sheet_to_json(first,{defval:""});resolve(json)}catch(err){reject(err)}};reader.onerror=reject;reader.readAsArrayBuffer(f)})}
+function readPaUrls(){const g=localStorage.getItem("pa_get_url")||"";const p=localStorage.getItem("pa_post_url")||"";return{get:g,post:p}}
+function writePaUrls(getUrl,postUrl){localStorage.setItem("pa_get_url",getUrl||"");localStorage.setItem("pa_post_url",postUrl||"")}
+async function loadFromPaGet(){try{const urls=readPaUrls();if(!urls.get)return false;setLoadInfo("Cargando desde API...","");const r=await fetch(urls.get,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});if(!r.ok)throw new Error("http");const payload=await r.json();const arr=Array.isArray(payload)?payload:(payload.value||payload.body||payload.items||[]);if(!arr||!arr.length){setLoadInfo("API sin datos","error");return false}const mapped=arr.map(it=>({Equipo:it.Title??it.Equipo??"",Responsable:it.field_1??it.Responsable??"",Organización:it.field_2??it["Organización"]??"",Código:it.field_3??it["Código"]??"",Área:it.field_4??it["Área"]??"",Estado:it.Estado??""}));writeLS(mapped);setData(mapped);setLoadInfo(`${data.length} registros desde API`,"ok");return true}catch(e){return false}}
+async function loadFromCloud(){try{if(typeof XLSX==="undefined")return;if(!CLOUD_XLSX_URL)return;setLoadInfo("Cargando desde nube...","");const res=await fetch(CLOUD_XLSX_URL);if(!res.ok)throw new Error("http");const buf=await res.arrayBuffer();const bytes=new Uint8Array(buf);const wb=XLSX.read(bytes,{type:"array"});const first=wb.Sheets[wb.SheetNames[0]];const json=XLSX.utils.sheet_to_json(first,{defval:""});if(!json||!json.length){setLoadInfo("Excel nube vacío","error");return}writeLS(json);setData(json);setLoadInfo(`${data.length} registros desde nube`,"ok")}catch(e){if(!data.length){setData(readLS());}setLoadInfo("No se pudo leer Excel en la nube","error")}}
 function search(){const q=normText(searchInput.value||"");if(!q){filtered=[...data];renderModalList(filtered);return}const respKey=keys.includes("Responsable")?"Responsable":keys[0];filtered=data.filter(row=>normText(row[respKey]).includes(q));renderModalList(filtered)}
 function findByIdVal(val){const key=idFieldEl.value;const raw=String(val||"");if(!raw)return null;const exact=data.find(r=>String(r[key])===raw);if(exact)return exact;const targetNorm=normText(raw);for(const r of data){for(const k of keys){const fieldNorm=normText(r[k]);if(!fieldNorm)continue;if(fieldNorm===targetNorm||targetNorm.includes(fieldNorm)||fieldNorm.includes(targetNorm))return r}}for(const r of data){const joined=keys.map(k=>r[k]).join(" ");const joinedNorm=normText(joined);if(joinedNorm===targetNorm||joinedNorm.includes(targetNorm)||targetNorm.includes(joinedNorm))return r}return null}
 function buildEditForm(rec){editForm.innerHTML="";if(!rec)return;keys.forEach(k=>{const wrap=document.createElement("div");wrap.className="flex";const label=document.createElement("label");label.textContent=k;label.style.minWidth="120px";const inp=document.createElement("input");inp.className="input";inp.value=rec[k]!==undefined?rec[k]:"";inp.dataset.key=k;wrap.appendChild(label);wrap.appendChild(inp);editForm.appendChild(wrap)})}
 function collectForm(rec){const inputs=editForm.querySelectorAll("input");inputs.forEach(inp=>{rec[inp.dataset.key]=inp.value})}
 function saveRecord(){const key=idFieldEl.value;const val=editIdValue.value;if(!val)return;const idx=data.findIndex(r=>String(r[key])===String(val));if(idx===-1)return;const rec=data[idx];collectForm(rec);writeLS(data);filtered=[...data];renderTable(filtered);renderModalList(filtered);editInfo.textContent="Guardado";editInfo.className="pill success";setTimeout(()=>{editInfo.className="pill";editInfo.textContent=`${data.length} registros`},2000)}
-function handleScan(text){const now=Date.now();if(text===lastScanText&&now-lastScanTime<2000)return;lastScanText=text;lastScanTime=now;qrStatus.textContent=`QR: ${text}`;editIdValue.value=text;const rec=findByIdVal(text);if(!rec){editForm.innerHTML="";editInfo.textContent="No encontrado";editInfo.className="pill danger";showToast("Acceso bloqueado.");stopQr();return}ensureEstadoField();const prev=rec[ESTADO_FIELD]||"";const next=prev==="Adentro"?"Afuera":"Adentro";rec[ESTADO_FIELD]=next;writeLS(data);filtered=[...data];renderTable(filtered);renderModalList(filtered);buildEditForm(rec);const idKey=idFieldEl.value;const label=rec[idKey]!==undefined?rec[idKey]:"";editInfo.textContent=`${label} → ${next}`;editInfo.className="pill success";const toastMsg=next==="Adentro"?"Ingreso validado.":"Salida validada.";showToast(toastMsg);stopQr()}
+async function postEstado(codigo,nuevoEstado){try{const urls=readPaUrls();if(!urls.post)return false;const r=await fetch(urls.post,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({codigo,nuevoEstado})});return r.ok}catch(e){return false}}
+function handleScan(text){const now=Date.now();if(text===lastScanText&&now-lastScanTime<2000)return;lastScanText=text;lastScanTime=now;qrStatus.textContent=`QR: ${text}`;editIdValue.value=text;const rec=findByIdVal(text);if(!rec){editForm.innerHTML="";editInfo.textContent="No encontrado";editInfo.className="pill danger";showToast("Acceso bloqueado.");stopQr();return}ensureEstadoField();const prev=rec[ESTADO_FIELD]||"";const next=prev==="Adentro"?"Afuera":"Adentro";rec[ESTADO_FIELD]=next;writeLS(data);filtered=[...data];renderTable(filtered);renderModalList(filtered);buildEditForm(rec);const idKey=idFieldEl.value;const label=rec[idKey]!==undefined?rec[idKey]:"";editInfo.textContent=`${label} → ${next}`;editInfo.className="pill success";const toastMsg=next==="Adentro"?"Ingreso validado.":"Salida validada.";showToast(toastMsg);const codeKey=keys.includes("Código")?"Código":idKey;const codigo=rec[codeKey]!==undefined?String(rec[codeKey]):String(text);postEstado(codigo,next).then(ok=>{if(!ok){showToast("No se pudo sincronizar")}});stopQr()}
 function startQr(){if(qrReader)return;qrReader=new Html5Qrcode("qrReader");Html5Qrcode.getCameras().then(cams=>{if(!cams||cams.length===0){qrStatus.textContent="Sin cámaras";return}qrReader.start(cams[0].id,{fps:10,qrbox:250},text=>{handleScan(text);},{})}).catch(()=>{qrStatus.textContent="Error QR"})}
 function stopQr(){if(!qrReader)return;qrReader.stop().then(()=>{qrReader.clear();qrReader=null;qrStatus.textContent="QR inactivo"}).catch(()=>{})}
 function loadRecord(){const rec=findByIdVal(editIdValue.value);if(!rec){editForm.innerHTML="";editInfo.textContent="No encontrado";editInfo.className="pill danger";return}buildEditForm(rec);editInfo.textContent="Registro cargado";editInfo.className="pill success"}
@@ -230,6 +258,7 @@ listModalBackdrop.onclick=e=>{if(e.target===listModalBackdrop)listModalBackdrop.
 document.addEventListener("keydown",e=>{if(e.key==="Escape")listModalBackdrop.classList.add("hidden")})
 configToggle.onclick=()=>{const hide=configBody.classList.toggle("hidden");configToggleIcon.textContent=hide?"+":"−"}
 setData(readLS())
+;(function(){const urls=readPaUrls();paGetUrlInput.value=urls.get;paPostUrlInput.value=urls.post;savePaUrlsBtn.onclick=()=>{writePaUrls(paGetUrlInput.value.trim(),paPostUrlInput.value.trim());paUrlsInfo.textContent="Guardado";paUrlsInfo.className="pill success"};async function tryLoadLocalConfig(){try{const r=await fetch("config.local.json",{cache:"no-store"});if(!r.ok)return false;const cfg=await r.json();if(cfg&&cfg.pa_get_url&&cfg.pa_post_url){writePaUrls(cfg.pa_get_url,cfg.pa_post_url);paGetUrlInput.value=cfg.pa_get_url;paPostUrlInput.value=cfg.pa_post_url;paUrlsInfo.textContent="Config local aplicada";paUrlsInfo.className="pill success";return true}return false}catch(e){return false}}tryLoadLocalConfig().then(()=>loadFromPaGet().then(ok=>{if(!ok)loadFromCloud()}))})()
 </script>
 </body>
 </html>
