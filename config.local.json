@@ -1,4 +1,4 @@
 {
-  "pa_get_url": "https://default375a5c515ca8409abe695bae38c736.5c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/df5bc0916c8b4534bf2ceeed53975fee/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=_5okZUkUz4eoCVcWTfqBQ6_Wd1ZTxupJVzPq7Ju3TjA",
-  "pa_post_url": "https://default375a5c515ca8409abe695bae38c736.5c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8e59a8f3ee68441dba055d49718001a4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=akRxox-R1D4Izsy7PjubsmHaNowP53RVLDAeto8fvQs"
+  "pa_get_url": "https://defaulta9003f7b333f4f4787385597721d58.2b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/831b7f2393a74095a89fe4fdae2cdb16/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Lf8is86sqe14Vbt67DeEJ7ZGgqSL5sW2W_WTob0pfyY",
+  "pa_post_url": "https://defaulta9003f7b333f4f4787385597721d58.2b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/52c9bd43aa6d404f89b12fcf2009c151/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=aJ61Nv4kpFGOUhZU8ROoGhacW4TQryk_eNRCvG5GvHA"
 }
